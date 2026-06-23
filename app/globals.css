@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: #f6f3ee;
+  --foreground: #171717;
+  --muted: #6f685f;
+  --line: #e7e0d6;
+  --surface: #fbfaf7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 8% 12%, rgba(207, 232, 255, 0.55) 0 120px, transparent 121px),
+    radial-gradient(circle at 88% 10%, rgba(248, 207, 216, 0.58) 0 96px, transparent 97px),
+    radial-gradient(circle at 72% 86%, rgba(207, 238, 221, 0.58) 0 136px, transparent 137px),
+    var(--background);
+  color: var(--foreground);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+main > *,
+main section,
+main aside {
+  min-width: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.focus-ring {
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+
+.focus-ring:focus-visible {
+  outline-color: #171717;
+}
+
+.bubble-field {
+  position: relative;
+  overflow: hidden;
+}
+
+.bubble-field::before,
+.bubble-field::after {
+  border-radius: 999px;
+  content: "";
+  position: absolute;
+  z-index: 0;
+}
+
+.bubble-field::before {
+  background: rgba(249, 231, 168, 0.8);
+  height: 116px;
+  right: -28px;
+  top: 18px;
+  width: 116px;
+}
+
+.bubble-field::after {
+  background: rgba(207, 232, 255, 0.85);
+  bottom: -36px;
+  height: 148px;
+  left: 10%;
+  width: 148px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .hover-lift:hover {
+    border-color: rgba(23, 23, 23, 0.16);
+    box-shadow: 0 18px 44px rgba(42, 35, 28, 0.12);
+    transform: translateY(-2px);
+  }
+}
