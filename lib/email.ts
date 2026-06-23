@@ -7,9 +7,10 @@ type InviteEmail = {
 export async function sendInvitationEmail({ email, groupName, token }: InviteEmail) {
   const apiKey = process.env.RESEND_API_KEY;
   const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
+  const from = process.env.RESEND_FROM_EMAIL ?? "Evenly <onboarding@resend.dev>";
 
   if (!apiKey) {
-    return;
+    return { error: "RESEND_API_KEY is not configured.", status: "skipped" as const };
   }
 
   const inviteUrl = `${appBaseUrl}/invite/${token}`;
@@ -20,7 +21,7 @@ export async function sendInvitationEmail({ email, groupName, token }: InviteEma
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: "Evenly <onboarding@resend.dev>",
+      from,
       html: `
         <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.5;">
           <h1>You were invited to ${groupName}</h1>
@@ -37,10 +38,16 @@ export async function sendInvitationEmail({ email, groupName, token }: InviteEma
     return null;
   });
 
-  if (!response) return;
+  if (!response) {
+    return { error: "Resend request failed before receiving a response.", status: "failed" as const };
+  }
 
   if (!response.ok) {
     const message = await response.text();
     console.error("Resend invitation failed", message);
+    return { error: message, status: "failed" as const };
   }
+
+  const payload = await response.json().catch(() => null);
+  return { id: payload?.id as string | undefined, status: "sent" as const };
 }

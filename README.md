@@ -73,6 +73,16 @@ On a group detail page, use the “Invite friends” form to add more pending in
 Current invite behavior saves invitations in the database. It does not send emails yet. To send real emails, connect the `Invitation` rows to an email provider such as Resend, Postmark, SendGrid, or Clerk invitations.
 With `RESEND_API_KEY` configured, Evenly sends invite emails through Resend. Each email links to `/invite/[token]`, where the invited user can accept the invitation after signing in.
 
+If emails are not delivered, check the invitation card on the group detail page. Evenly stores Resend delivery status and the Resend error message on each invitation. Common Resend issues are using `onboarding@resend.dev` for recipients outside the allowed test address, or not configuring a verified sending domain. For production, set `RESEND_FROM_EMAIL` to an address on a verified Resend domain.
+
+Every invite also displays its direct invite link, so you can copy it manually while email delivery is being configured.
+
+## Settling Bills
+
+Evenly calculates balances from expenses, participants, and prior settlement records.
+
+On a group detail page or `/settlements`, suggested transfers appear when someone owes another member. Click “Mark settled” to create a `Settlement` row. That settlement is included in future balance calculations, so the suggestion disappears or shrinks after it is recorded.
+
 ## Receipt Uploads And Amount Calculation
 
 Cloudinary stores receipt files. After an image receipt is uploaded, Evenly sends it to Claude to extract merchant, date, total amount, and category.

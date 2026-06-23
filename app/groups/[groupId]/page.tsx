@@ -4,10 +4,10 @@ import { AmountBubble, Button, Card, Pill } from "@/components/ui";
 import { EmptyState } from "@/components/empty-state";
 import { ExpenseCard } from "@/components/expense-card";
 import { MemberAvatarStack } from "@/components/member-avatar-stack";
-import { settlementSuggestions } from "@/lib/data";
 import { inviteFriends } from "@/lib/group-actions";
 import { getCurrentUserGroup } from "@/lib/group-queries";
 import { formatMoney } from "@/lib/money";
+import { markSettlementPaid } from "@/lib/settlement-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +29,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
   }
 
   const inviteFriendsForGroup = inviteFriends.bind(null, group.id);
+  const memberById = new Map(group.members.map((member) => [member.id, member]));
   const groupExpenses = group.expenses.map((expense) => ({
     amountCents: expense.amountCents,
     category: expense.category?.name ?? "Expense",
@@ -90,11 +91,23 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
             <Pill>Settlements</Pill>
             <h2 className="mt-3 text-2xl font-black">Suggested transfers</h2>
             <div className="mt-5 grid gap-3">
-              {settlementSuggestions.length ? (
-                settlementSuggestions.slice(0, 3).map((settlement) => (
+              {group.settlementSuggestions.length ? (
+                group.settlementSuggestions.map((settlement) => (
                   <article className="rounded-[1.5rem] border border-line bg-white p-4" key={`${settlement.fromUserId}-${settlement.toUserId}`}>
-                    <p className="text-sm font-bold">{settlement.fromUserId} pays {settlement.toUserId}</p>
+                    <p className="text-sm font-bold">
+                      {memberById.get(settlement.fromUserId)?.name ?? "Member"} pays{" "}
+                      {memberById.get(settlement.toUserId)?.name ?? "Member"}
+                    </p>
                     <p className="mt-1 text-2xl font-black">{formatMoney(settlement.amountCents)}</p>
+                    <form action={markSettlementPaid} className="mt-4">
+                      <input name="amountCents" type="hidden" value={settlement.amountCents} />
+                      <input name="fromUserId" type="hidden" value={settlement.fromUserId} />
+                      <input name="groupId" type="hidden" value={group.id} />
+                      <input name="toUserId" type="hidden" value={settlement.toUserId} />
+                      <button className="focus-ring inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-pill bg-ink px-4 py-2 text-sm font-semibold text-white" type="submit">
+                        Mark settled
+                      </button>
+                    </form>
                   </article>
                 ))
               ) : (
@@ -103,10 +116,23 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                 </p>
               )}
             </div>
-            <Button className="mt-5 w-full">
-              <Send className="h-4 w-4" />
-              Settle up
-            </Button>
+          </Card>
+          <Card>
+            <Pill>Settlement history</Pill>
+            <div className="mt-5 grid gap-2">
+              {group.settlements.length ? (
+                group.settlements.map((settlement) => (
+                  <div className="rounded-[1.25rem] border border-line bg-white p-3 text-sm font-semibold" key={settlement.id}>
+                    {settlement.fromUser.name} paid {settlement.toUser.name}
+                    <span className="ml-2 font-black">{formatMoney(settlement.amountCents)}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-[1.25rem] border border-line bg-white p-3 text-sm font-semibold text-ink/55">
+                  No settlements recorded yet.
+                </p>
+              )}
+            </div>
           </Card>
           <Card>
             <Pill>Members</Pill>
@@ -136,8 +162,20 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
               {group.invitations.length ? (
                 group.invitations.map((invitation) => (
                   <div className="rounded-[1.25rem] border border-line bg-white p-3 text-sm font-semibold" key={invitation.id}>
-                    {invitation.email}
-                    <span className="ml-2 text-ink/45">{invitation.accepted ? "accepted" : "pending"}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span>{invitation.email}</span>
+                      <Pill className="px-3 py-1 text-xs">
+                        {invitation.accepted ? "accepted" : invitation.deliveryStatus}
+                      </Pill>
+                    </div>
+                    {invitation.deliveryError ? (
+                      <p className="mt-2 text-xs leading-5 text-rose-950">
+                        Email failed: {invitation.deliveryError.slice(0, 160)}
+                      </p>
+                    ) : null}
+                    <p className="mt-2 break-all text-xs text-ink/50">
+                      Invite link: {(process.env.APP_BASE_URL ?? "http://localhost:3000")}/invite/{invitation.token}
+                    </p>
                   </div>
                 ))
               ) : (

@@ -36,19 +36,10 @@ export async function createGroup(formData: FormData) {
     throw new Error("Group name is required.");
   }
 
-  const invitationData = emails.map((email) => ({
-    email,
-    expiresAt: inviteExpiry(),
-    token: crypto.randomUUID()
-  }));
-
   const group = await prisma.group.create({
     data: {
       category,
       name,
-      invitations: {
-        create: invitationData
-      },
       members: {
         create: {
           role: "owner",
@@ -59,13 +50,30 @@ export async function createGroup(formData: FormData) {
   });
 
   await Promise.all(
-    invitationData.map((invitation) =>
-      sendInvitationEmail({
+    emails.map(async (email) => {
+      const invitation = await prisma.invitation.create({
+        data: {
+          email,
+          expiresAt: inviteExpiry(),
+          groupId: group.id,
+          token: crypto.randomUUID()
+        }
+      });
+      const delivery = await sendInvitationEmail({
         email: invitation.email,
         groupName: group.name,
         token: invitation.token
-      })
-    )
+      });
+
+      await prisma.invitation.update({
+        data: {
+          deliveryError: delivery?.error,
+          deliveryStatus: delivery?.status ?? "skipped",
+          sentAt: delivery?.status === "sent" ? new Date() : null
+        },
+        where: { id: invitation.id }
+      });
+    })
   );
 
   revalidatePath("/dashboard");
@@ -95,25 +103,31 @@ export async function inviteFriends(groupId: string, formData: FormData) {
       select: { name: true },
       where: { id: groupId }
     });
-    const invitationData = emails.map((email) => ({
-      email,
-      expiresAt: inviteExpiry(),
-      groupId,
-      token: crypto.randomUUID()
-    }));
-
-    await prisma.invitation.createMany({
-      data: invitationData
-    });
-
     await Promise.all(
-      invitationData.map((invitation) =>
-        sendInvitationEmail({
+      emails.map(async (email) => {
+        const invitation = await prisma.invitation.create({
+          data: {
+            email,
+            expiresAt: inviteExpiry(),
+            groupId,
+            token: crypto.randomUUID()
+          }
+        });
+        const delivery = await sendInvitationEmail({
           email: invitation.email,
           groupName: group?.name ?? "Evenly group",
           token: invitation.token
-        })
-      )
+        });
+
+        await prisma.invitation.update({
+          data: {
+            deliveryError: delivery?.error,
+            deliveryStatus: delivery?.status ?? "skipped",
+            sentAt: delivery?.status === "sent" ? new Date() : null
+          },
+          where: { id: invitation.id }
+        });
+      })
     );
   }
 

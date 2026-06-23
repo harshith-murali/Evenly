@@ -98,6 +98,9 @@ model Invitation {
   token     String   @unique
   expiresAt DateTime
   accepted  Boolean  @default(false)
+  deliveryStatus String @default("pending")
+  deliveryError  String?
+  sentAt     DateTime?
   group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
 }
 
