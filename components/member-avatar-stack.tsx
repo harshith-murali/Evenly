@@ -1,14 +1,25 @@
 import { getMember } from "@/lib/data";
 import { cn } from "@/components/ui";
 
+export type AvatarMember = {
+  id: string;
+  name: string;
+  initials: string;
+  color: string;
+};
+
 export function MemberAvatarStack({
   ids,
+  members,
   size = "md"
 }: {
-  ids: string[];
+  ids?: string[];
+  members?: AvatarMember[];
   size?: "sm" | "md" | "lg";
 }) {
-  if (ids.length === 0) {
+  const people = members ?? ids?.map((id) => getMember(id)) ?? [];
+
+  if (people.length === 0) {
     return <span className="text-sm font-semibold text-ink/50">No members</span>;
   }
 
@@ -16,8 +27,7 @@ export function MemberAvatarStack({
 
   return (
     <div className="flex -space-x-2">
-      {ids.map((id) => {
-        const member = getMember(id);
+      {people.map((member) => {
         return (
           <span
             aria-label={member.name}
@@ -26,7 +36,7 @@ export function MemberAvatarStack({
               dimensions,
               member.color
             )}
-            key={id}
+            key={member.id}
             title={member.name}
           >
             {member.initials}

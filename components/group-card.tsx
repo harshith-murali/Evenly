@@ -2,7 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { formatMoney } from "@/lib/money";
 import { cn, Pill } from "@/components/ui";
-import { MemberAvatarStack } from "@/components/member-avatar-stack";
+import { type AvatarMember, MemberAvatarStack } from "@/components/member-avatar-stack";
 
 export function GroupCard({
   id,
@@ -18,7 +18,7 @@ export function GroupCard({
   category: string;
   totalCents: number;
   balanceCents: number;
-  members: string[];
+  members: AvatarMember[];
   tone: string;
 }) {
   return (
@@ -38,7 +38,7 @@ export function GroupCard({
         <p className="mt-1 text-sm text-ink/60">{formatMoney(totalCents)} tracked this month</p>
       </div>
       <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <MemberAvatarStack ids={members} />
+        <MemberAvatarStack members={members} />
         <div className="min-w-0 text-left sm:text-right">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink/45">Balance</p>
           <p className={cn("break-words text-lg font-black", balanceCents < 0 ? "text-rose-950" : "text-ink")}>

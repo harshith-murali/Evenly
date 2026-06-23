@@ -4,12 +4,16 @@ import { AmountBubble, Button, Card, Pill } from "@/components/ui";
 import { EmptyState } from "@/components/empty-state";
 import { ExpenseCard } from "@/components/expense-card";
 import { MemberAvatarStack } from "@/components/member-avatar-stack";
-import { expenses, getGroup, settlementSuggestions } from "@/lib/data";
+import { settlementSuggestions } from "@/lib/data";
+import { inviteFriends } from "@/lib/group-actions";
+import { getCurrentUserGroup } from "@/lib/group-queries";
 import { formatMoney } from "@/lib/money";
+
+export const dynamic = "force-dynamic";
 
 export default async function GroupDetailPage({ params }: { params: Promise<{ groupId: string }> }) {
   const { groupId } = await params;
-  const group = getGroup(groupId);
+  const group = await getCurrentUserGroup(groupId);
 
   if (!group) {
     return (
@@ -24,7 +28,16 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
     );
   }
 
-  const groupExpenses = expenses.filter((expense) => expense.groupId === group.id);
+  const inviteFriendsForGroup = inviteFriends.bind(null, group.id);
+  const groupExpenses = group.expenses.map((expense) => ({
+    amountCents: expense.amountCents,
+    category: "Expense",
+    date: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(expense.createdAt),
+    id: expense.id,
+    paidByUserId: expense.paidByUserId,
+    title: expense.title,
+    tone: "bg-mint"
+  }));
 
   return (
     <AppShell title={group.name}>
@@ -37,7 +50,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                 <h2 className="mt-5 text-4xl font-black tracking-normal">{group.name}</h2>
                 <p className="mt-2 text-ink/60">{formatMoney(group.totalCents)} in tracked spending this month.</p>
               </div>
-              <MemberAvatarStack ids={group.members} size="lg" />
+              <MemberAvatarStack members={group.members} size="lg" />
             </div>
           </Card>
           <div className="grid gap-4 md:grid-cols-3">
@@ -97,8 +110,40 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
           <Card>
             <Pill>Members</Pill>
             <div className="mt-5 flex items-center justify-between">
-              <MemberAvatarStack ids={group.members} size="lg" />
+              <MemberAvatarStack members={group.members} size="lg" />
               <Pill>{group.members.length} people</Pill>
+            </div>
+          </Card>
+          <Card>
+            <Pill>Invitations</Pill>
+            <h2 className="mt-3 text-2xl font-black">Invite friends</h2>
+            <p className="mt-2 text-sm leading-6 text-ink/60">
+              Add emails here to create pending invitations for this group.
+            </p>
+            <form action={inviteFriendsForGroup} className="mt-5 grid gap-3">
+              <textarea
+                className="min-h-24 rounded-[1.25rem] border border-line bg-white px-4 py-3 text-sm outline-none"
+                name="inviteEmails"
+                placeholder="friend@example.com, another@example.com"
+              />
+              <Button>
+                <Send className="h-4 w-4" />
+                Invite
+              </Button>
+            </form>
+            <div className="mt-5 grid gap-2">
+              {group.invitations.length ? (
+                group.invitations.map((invitation) => (
+                  <div className="rounded-[1.25rem] border border-line bg-white p-3 text-sm font-semibold" key={invitation.id}>
+                    {invitation.email}
+                    <span className="ml-2 text-ink/45">{invitation.accepted ? "accepted" : "pending"}</span>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-[1.25rem] border border-line bg-white p-3 text-sm font-semibold text-ink/55">
+                  No pending invites.
+                </p>
+              )}
             </div>
           </Card>
         </aside>

@@ -6,9 +6,14 @@ import { CategoryChart } from "@/components/category-chart";
 import { EmptyState } from "@/components/empty-state";
 import { ExpenseCard } from "@/components/expense-card";
 import { GroupCard } from "@/components/group-card";
-import { activity, expenses, groups } from "@/lib/data";
+import { activity, expenses } from "@/lib/data";
+import { getCurrentUserGroups } from "@/lib/group-queries";
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
+  const groups = await getCurrentUserGroups();
+
   return (
     <AppShell title="Dashboard">
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">

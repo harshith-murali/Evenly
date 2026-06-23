@@ -1,11 +1,16 @@
-import { Search, UsersRound } from "lucide-react";
+import { Plus, Search, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
 import { GroupCard } from "@/components/group-card";
 import { Card, Pill } from "@/components/ui";
-import { groups } from "@/lib/data";
+import { createGroup } from "@/lib/group-actions";
+import { getCurrentUserGroups } from "@/lib/group-queries";
 
-export default function GroupsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function GroupsPage() {
+  const groups = await getCurrentUserGroups();
+
   return (
     <AppShell title="Groups">
       <Card className="mb-5">
@@ -21,23 +26,64 @@ export default function GroupsPage() {
           </label>
         </div>
       </Card>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {groups.length ? groups.map((group) => <GroupCard {...group} key={group.id} />) : null}
-        <Card className="grid min-h-80 place-items-center border-dashed text-center">
-          <div>
-            <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-butter">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <section className="grid content-start gap-5 md:grid-cols-2">
+          {groups.length ? (
+            groups.map((group) => <GroupCard {...group} key={group.id} />)
+          ) : (
+            <EmptyState
+              description="Create your first group, invite friends, then start adding shared expenses."
+              title="Your group list is empty"
+            />
+          )}
+        </section>
+        <Card>
+          <div className="flex items-start gap-4">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-butter">
               <UsersRound className="h-6 w-6" />
             </span>
-            <h2 className="mt-5 text-2xl font-black">Create a group</h2>
-            <p className="mt-2 text-sm text-ink/60">Invite friends, add expenses, and let Evenly keep the math tidy.</p>
+            <div>
+              <Pill active>Create group</Pill>
+              <h2 className="mt-4 text-2xl font-black">Start a shared space</h2>
+              <p className="mt-2 text-sm leading-6 text-ink/60">
+                Add a group name and invite friends by email. Invites are saved as pending rows in Postgres.
+              </p>
+            </div>
           </div>
+          <form action={createGroup} className="mt-6 grid gap-4">
+            <label className="grid gap-2 text-sm font-bold">
+              Group name
+              <input
+                className="rounded-[1.25rem] border border-line bg-white px-4 py-3 outline-none"
+                name="name"
+                placeholder="Weekend trip, roommates, team lunch"
+                required
+              />
+            </label>
+            <label className="grid gap-2 text-sm font-bold">
+              Category
+              <select className="rounded-[1.25rem] border border-line bg-white px-4 py-3 outline-none" name="category">
+                <option>Roommates</option>
+                <option>Travel</option>
+                <option>Friends</option>
+                <option>Couple</option>
+                <option>Work</option>
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-bold">
+              Invite emails
+              <textarea
+                className="min-h-28 rounded-[1.25rem] border border-line bg-white px-4 py-3 outline-none"
+                name="inviteEmails"
+                placeholder="friend@example.com, another@example.com"
+              />
+            </label>
+            <button className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(23,23,23,0.18)]" type="submit">
+              <Plus className="h-4 w-4" />
+              Create group
+            </button>
+          </form>
         </Card>
-        {!groups.length ? (
-          <EmptyState
-            description="Connect your database-backed group creation flow to populate this page."
-            title="Your group list is empty"
-          />
-        ) : null}
       </div>
     </AppShell>
   );
