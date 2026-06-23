@@ -15,7 +15,20 @@ type SignatureResponse = {
   error?: string;
 };
 
-export function CloudinaryReceiptUpload() {
+type ExtractedReceipt = {
+  category?: string;
+  date?: string;
+  merchant?: string;
+  totalAmount?: number;
+};
+
+export function CloudinaryReceiptUpload({
+  onExtract,
+  onUpload
+}: {
+  onExtract?: (receipt: ExtractedReceipt) => void;
+  onUpload?: (secureUrl: string) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>("idle");
   const [message, setMessage] = useState("No receipt uploaded yet.");
@@ -55,9 +68,28 @@ export function CloudinaryReceiptUpload() {
         throw new Error(uploadPayload.error?.message ?? "Receipt upload failed.");
       }
 
-      setSecureUrl(uploadPayload.secure_url);
+      const uploadedUrl = uploadPayload.secure_url;
+      setSecureUrl(uploadedUrl);
+      onUpload?.(uploadedUrl);
       setMessage(file.name);
       setState("uploaded");
+
+      setMessage("Receipt uploaded. Reading details with Claude.");
+      const extractResponse = await fetch("/api/receipts/extract", {
+        body: JSON.stringify({ receiptUrl: uploadedUrl }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST"
+      });
+      const extractPayload = await extractResponse.json();
+
+      if (extractResponse.ok && extractPayload.receipt) {
+        onExtract?.(extractPayload.receipt);
+        setMessage("Receipt details extracted. Please review before saving.");
+      } else {
+        setMessage(extractPayload.error ?? "Receipt uploaded. Enter details manually.");
+      }
     } catch (error) {
       setSecureUrl("");
       setMessage(error instanceof Error ? error.message : "Receipt upload failed.");

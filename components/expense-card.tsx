@@ -8,6 +8,7 @@ export function ExpenseCard({
   category,
   amountCents,
   paidByUserId,
+  paidByName,
   date,
   tone,
   compact
@@ -16,11 +17,12 @@ export function ExpenseCard({
   category: string;
   amountCents: number;
   paidByUserId: string;
+  paidByName?: string;
   date: string;
   tone: string;
   compact?: boolean;
 }) {
-  const member = getMember(paidByUserId);
+  const member = paidByName ? { name: paidByName } : getMember(paidByUserId);
 
   return (
     <article className="hover-lift flex min-w-0 max-w-full flex-col gap-4 rounded-[1.5rem] border border-line bg-white/75 p-4 sm:flex-row sm:items-center">

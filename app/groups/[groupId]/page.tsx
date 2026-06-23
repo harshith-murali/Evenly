@@ -31,9 +31,10 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
   const inviteFriendsForGroup = inviteFriends.bind(null, group.id);
   const groupExpenses = group.expenses.map((expense) => ({
     amountCents: expense.amountCents,
-    category: "Expense",
-    date: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(expense.createdAt),
+    category: expense.category?.name ?? "Expense",
+    date: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(expense.expenseDate),
     id: expense.id,
+    paidByName: expense.paidBy.name,
     paidByUserId: expense.paidByUserId,
     title: expense.title,
     tone: "bg-mint"

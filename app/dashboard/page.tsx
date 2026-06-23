@@ -6,13 +6,14 @@ import { CategoryChart } from "@/components/category-chart";
 import { EmptyState } from "@/components/empty-state";
 import { ExpenseCard } from "@/components/expense-card";
 import { GroupCard } from "@/components/group-card";
-import { activity, expenses } from "@/lib/data";
-import { getCurrentUserGroups } from "@/lib/group-queries";
+import { activity } from "@/lib/data";
+import { getCurrentUserGroups, getCurrentUserRecentExpenses } from "@/lib/group-queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const groups = await getCurrentUserGroups();
+  const expenses = await getCurrentUserRecentExpenses();
 
   return (
     <AppShell title="Dashboard">

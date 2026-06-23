@@ -68,8 +68,12 @@ export async function getCurrentUserGroup(groupId: string) {
       group: {
         include: {
           expenses: {
+            include: {
+              category: true,
+              paidBy: true
+            },
             orderBy: {
-              createdAt: "desc"
+              expenseDate: "desc"
             }
           },
           invitations: {
@@ -111,4 +115,42 @@ export async function getCurrentUserGroup(groupId: string) {
     tone: tones[0],
     totalCents
   };
+}
+
+export async function getCurrentUserRecentExpenses() {
+  const user = await ensureCurrentUser();
+  const memberships = await prisma.groupMember.findMany({
+    select: { groupId: true },
+    where: { userId: user.id }
+  });
+  const groupIds = memberships.map((membership) => membership.groupId);
+
+  if (!groupIds.length) return [];
+
+  const expenses = await prisma.expense.findMany({
+    include: {
+      category: true,
+      paidBy: true
+    },
+    orderBy: {
+      expenseDate: "desc"
+    },
+    take: 8,
+    where: {
+      groupId: {
+        in: groupIds
+      }
+    }
+  });
+
+  return expenses.map((expense) => ({
+    amountCents: expense.amountCents,
+    category: expense.category?.name ?? "Expense",
+    date: new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short" }).format(expense.expenseDate),
+    id: expense.id,
+    paidByName: expense.paidBy.name,
+    paidByUserId: expense.paidByUserId,
+    title: expense.title,
+    tone: "bg-mint"
+  }));
 }

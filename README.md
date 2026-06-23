@@ -9,6 +9,8 @@ Evenly is a Splitwise-style expense sharing web app built with Next.js App Route
 - PostgreSQL-backed group creation
 - Pending group invitations by email
 - Cloudinary receipt upload for expense receipts
+- Claude receipt detail extraction after image upload
+- Resend invitation emails
 - INR currency formatting
 - Empty states for fresh accounts with no groups, expenses, or settlements
 - Pure split and settlement utility tests
@@ -22,6 +24,8 @@ Evenly is a Splitwise-style expense sharing web app built with Next.js App Route
 - Prisma
 - PostgreSQL / Neon
 - Cloudinary signed uploads
+- Claude API
+- Resend
 - Vitest
 
 ## Getting Started
@@ -67,26 +71,22 @@ When a group is created:
 On a group detail page, use the “Invite friends” form to add more pending invitations.
 
 Current invite behavior saves invitations in the database. It does not send emails yet. To send real emails, connect the `Invitation` rows to an email provider such as Resend, Postmark, SendGrid, or Clerk invitations.
+With `RESEND_API_KEY` configured, Evenly sends invite emails through Resend. Each email links to `/invite/[token]`, where the invited user can accept the invitation after signing in.
 
 ## Receipt Uploads And Amount Calculation
 
-Cloudinary stores receipt files. Uploading a receipt does not automatically calculate the expense amount right now.
+Cloudinary stores receipt files. After an image receipt is uploaded, Evenly sends it to Claude to extract merchant, date, total amount, and category.
 
 Current flow:
 
-1. The user manually enters the amount.
-2. The receipt is uploaded to Cloudinary.
-3. The Cloudinary `secure_url` can be stored with the expense as `receiptUrl`.
+1. The receipt is uploaded to Cloudinary.
+2. The Cloudinary `secure_url` is sent to `/api/receipts/extract`.
+3. The server fetches the image and sends it to Claude.
+4. Claude returns structured receipt details.
+5. The form fills the merchant, amount, date, and category when Claude can read them.
+6. The user reviews and saves the expense.
 
-To calculate the amount automatically from a receipt, the app needs an OCR or AI extraction step after upload. A production flow would be:
-
-1. Upload receipt to Cloudinary.
-2. Send the image/PDF URL to an OCR service or vision model.
-3. Extract merchant, date, total amount, tax, and line items.
-4. Show the extracted amount to the user for confirmation.
-5. Save the confirmed amount in integer minor units.
-
-This confirmation step matters because receipt OCR can misread totals, discounts, tips, or multiple tax lines.
+This confirmation step still matters because receipt OCR/AI can misread totals, discounts, tips, or multiple tax lines. PDF receipt extraction is not enabled yet; the current Claude extraction endpoint supports image receipts.
 
 ## Validation
 

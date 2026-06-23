@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ensureCurrentUser } from "@/lib/current-user";
+import { sendInvitationEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 
 function parseInviteEmails(value: FormDataEntryValue | null) {
@@ -35,16 +36,18 @@ export async function createGroup(formData: FormData) {
     throw new Error("Group name is required.");
   }
 
+  const invitationData = emails.map((email) => ({
+    email,
+    expiresAt: inviteExpiry(),
+    token: crypto.randomUUID()
+  }));
+
   const group = await prisma.group.create({
     data: {
       category,
       name,
       invitations: {
-        create: emails.map((email) => ({
-          email,
-          expiresAt: inviteExpiry(),
-          token: crypto.randomUUID()
-        }))
+        create: invitationData
       },
       members: {
         create: {
@@ -54,6 +57,16 @@ export async function createGroup(formData: FormData) {
       }
     }
   });
+
+  await Promise.all(
+    invitationData.map((invitation) =>
+      sendInvitationEmail({
+        email: invitation.email,
+        groupName: group.name,
+        token: invitation.token
+      })
+    )
+  );
 
   revalidatePath("/dashboard");
   revalidatePath("/groups");
@@ -78,16 +91,69 @@ export async function inviteFriends(groupId: string, formData: FormData) {
   }
 
   if (emails.length) {
-    await prisma.invitation.createMany({
-      data: emails.map((email) => ({
-        email,
-        expiresAt: inviteExpiry(),
-        groupId,
-        token: crypto.randomUUID()
-      }))
+    const group = await prisma.group.findUnique({
+      select: { name: true },
+      where: { id: groupId }
     });
+    const invitationData = emails.map((email) => ({
+      email,
+      expiresAt: inviteExpiry(),
+      groupId,
+      token: crypto.randomUUID()
+    }));
+
+    await prisma.invitation.createMany({
+      data: invitationData
+    });
+
+    await Promise.all(
+      invitationData.map((invitation) =>
+        sendInvitationEmail({
+          email: invitation.email,
+          groupName: group?.name ?? "Evenly group",
+          token: invitation.token
+        })
+      )
+    );
   }
 
   revalidatePath("/groups");
   revalidatePath(`/groups/${groupId}`);
+}
+
+export async function acceptInvitation(token: string) {
+  const user = await ensureCurrentUser();
+  const invitation = await prisma.invitation.findUnique({
+    include: {
+      group: true
+    },
+    where: { token }
+  });
+
+  if (!invitation || invitation.expiresAt < new Date()) {
+    throw new Error("This invite is invalid or expired.");
+  }
+
+  await prisma.groupMember.upsert({
+    create: {
+      groupId: invitation.groupId,
+      role: "member",
+      userId: user.id
+    },
+    update: {},
+    where: {
+      groupId_userId: {
+        groupId: invitation.groupId,
+        userId: user.id
+      }
+    }
+  });
+
+  await prisma.invitation.update({
+    data: { accepted: true },
+    where: { id: invitation.id }
+  });
+
+  revalidatePath("/groups");
+  redirect(`/groups/${invitation.groupId}`);
 }
