@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Plus, ReceiptText, UsersRound } from "lucide-react";
 import { createExpense } from "@/lib/expense-actions";
-import { Button, Card, Pill, cn } from "@/components/ui";
+import { Card, Pill, cn } from "@/components/ui";
 import { CloudinaryReceiptUpload } from "@/components/cloudinary-receipt-upload";
+import { FormSubmitButton } from "@/components/form-submit-button";
 
 type ExpenseGroup = {
   id: string;
@@ -249,10 +250,10 @@ export function AddExpenseForm({ groups }: { groups: ExpenseGroup[] }) {
             <Pill>{selectedMemberCount} members</Pill>
           </div>
         </div>
-        <Button className="mt-6 w-full">
+        <FormSubmitButton className="mt-6 w-full" disabled={!selectedGroupId} pendingLabel="Saving expense...">
           <Plus className="h-4 w-4" />
           Save expense
-        </Button>
+        </FormSubmitButton>
       </Card>
     </form>
   );

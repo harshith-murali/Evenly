@@ -1,6 +1,7 @@
 import { Plus, Search, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { GroupCard } from "@/components/group-card";
 import { Card, Pill } from "@/components/ui";
 import { createGroup } from "@/lib/group-actions";
@@ -78,10 +79,10 @@ export default async function GroupsPage() {
                 placeholder="friend@example.com, another@example.com"
               />
             </label>
-            <button className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(23,23,23,0.18)]" type="submit">
+            <FormSubmitButton pendingLabel="Creating group...">
               <Plus className="h-4 w-4" />
               Create group
-            </button>
+            </FormSubmitButton>
           </form>
         </Card>
       </div>

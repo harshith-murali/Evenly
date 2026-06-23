@@ -44,21 +44,23 @@ export function Pill({
 export function Button({
   children,
   variant = "primary",
-  className
-}: {
-  children: React.ReactNode;
+  className,
+  type = "button",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary";
-  className?: string;
 }) {
   return (
     <button
       className={cn(
-        "focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-pill px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5",
+        "focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-pill px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:translate-y-0 disabled:opacity-60",
         variant === "primary"
           ? "bg-ink text-white shadow-[0_12px_28px_rgba(23,23,23,0.18)]"
           : "border border-line bg-white text-ink",
         className
       )}
+      type={type}
+      {...props}
     >
       {children}
     </button>

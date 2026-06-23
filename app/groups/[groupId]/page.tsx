@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { AmountBubble, Button, Card, Pill } from "@/components/ui";
 import { EmptyState } from "@/components/empty-state";
 import { ExpenseCard } from "@/components/expense-card";
+import { FormSubmitButton } from "@/components/form-submit-button";
+import { InviteLinkCopy } from "@/components/invite-link-copy";
 import { MemberAvatarStack } from "@/components/member-avatar-stack";
 import { inviteFriends } from "@/lib/group-actions";
 import { getCurrentUserGroup } from "@/lib/group-queries";
@@ -29,6 +31,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
   }
 
   const inviteFriendsForGroup = inviteFriends.bind(null, group.id);
+  const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
   const memberById = new Map(group.members.map((member) => [member.id, member]));
   const groupExpenses = group.expenses.map((expense) => ({
     amountCents: expense.amountCents,
@@ -153,10 +156,10 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                 name="inviteEmails"
                 placeholder="friend@example.com, another@example.com"
               />
-              <Button>
+              <FormSubmitButton pendingLabel="Sending invites...">
                 <Send className="h-4 w-4" />
                 Invite
-              </Button>
+              </FormSubmitButton>
             </form>
             <div className="mt-5 grid gap-2">
               {group.invitations.length ? (
@@ -173,9 +176,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ gr
                         Email failed: {invitation.deliveryError.slice(0, 160)}
                       </p>
                     ) : null}
-                    <p className="mt-2 break-all text-xs text-ink/50">
-                      Invite link: {(process.env.APP_BASE_URL ?? "http://localhost:3000")}/invite/{invitation.token}
-                    </p>
+                    <InviteLinkCopy inviteUrl={`${appBaseUrl}/invite/${invitation.token}`} />
                   </div>
                 ))
               ) : (
