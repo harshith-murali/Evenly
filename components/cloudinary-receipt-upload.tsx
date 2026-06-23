@@ -32,10 +32,45 @@ export function CloudinaryReceiptUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [state, setState] = useState<UploadState>("idle");
   const [message, setMessage] = useState("No receipt uploaded yet.");
+  const [progress, setProgress] = useState(0);
   const [secureUrl, setSecureUrl] = useState("");
+
+  function uploadToCloudinary(url: string, formData: FormData) {
+    return new Promise<{ secure_url: string }>((resolve, reject) => {
+      const request = new XMLHttpRequest();
+
+      request.open("POST", url);
+      request.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          setProgress(Math.round((event.loaded / event.total) * 72));
+        }
+      };
+      request.onerror = () => reject(new Error("Receipt upload failed."));
+      request.onload = () => {
+        let payload: { error?: { message?: string }; secure_url?: string } = {};
+
+        try {
+          payload = JSON.parse(request.responseText);
+        } catch {
+          reject(new Error("Cloudinary returned an unreadable response."));
+          return;
+        }
+
+        if (request.status < 200 || request.status >= 300 || !payload.secure_url) {
+          reject(new Error(payload.error?.message ?? "Receipt upload failed."));
+          return;
+        }
+
+        setProgress(78);
+        resolve({ secure_url: payload.secure_url });
+      };
+      request.send(formData);
+    });
+  }
 
   async function uploadFile(file: File) {
     setState("uploading");
+    setProgress(8);
     setMessage("Preparing Cloudinary upload.");
 
     try {
@@ -55,23 +90,17 @@ export function CloudinaryReceiptUpload({
       formData.append("signature", signaturePayload.signature);
       formData.append("folder", signaturePayload.folder);
 
-      const uploadResponse = await fetch(
+      setMessage("Uploading receipt to Cloudinary.");
+      const uploadPayload = await uploadToCloudinary(
         `https://api.cloudinary.com/v1_1/${signaturePayload.cloudName}/auto/upload`,
-        {
-          method: "POST",
-          body: formData
-        }
+        formData
       );
-      const uploadPayload = await uploadResponse.json();
-
-      if (!uploadResponse.ok) {
-        throw new Error(uploadPayload.error?.message ?? "Receipt upload failed.");
-      }
 
       const uploadedUrl = uploadPayload.secure_url;
       setSecureUrl(uploadedUrl);
       onUpload?.(uploadedUrl);
-      setMessage(file.name);
+      setProgress(82);
+      setMessage(`${file.name} uploaded.`);
       setState("uploaded");
 
       setMessage("Receipt uploaded. Reading details with Claude.");
@@ -86,11 +115,14 @@ export function CloudinaryReceiptUpload({
 
       if (extractResponse.ok && extractPayload.receipt) {
         onExtract?.(extractPayload.receipt);
+        setProgress(100);
         setMessage("Receipt details extracted. Please review before saving.");
       } else {
+        setProgress(100);
         setMessage(extractPayload.error ?? "Receipt uploaded. Enter details manually.");
       }
     } catch (error) {
+      setProgress(0);
       setSecureUrl("");
       setMessage(error instanceof Error ? error.message : "Receipt upload failed.");
       setState("error");
@@ -114,9 +146,22 @@ export function CloudinaryReceiptUpload({
       </span>
       <p className="mt-4 text-sm font-bold">Upload receipt</p>
       <p className="mx-auto mt-1 max-w-52 text-sm text-ink/55">{message}</p>
+      <div className="mx-auto mt-5 max-w-56">
+        <div className="flex items-center justify-between text-xs font-bold text-ink/50">
+          <span>{state === "uploading" ? "Uploading" : state === "uploaded" ? "Complete" : "Progress"}</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="mt-2 h-3 overflow-hidden rounded-pill bg-white">
+          <div
+            className="h-full rounded-pill bg-ink transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
       <div className="mt-5 flex flex-wrap justify-center gap-2">
         <button
-          className="focus-ring inline-flex min-h-11 min-w-36 items-center justify-center gap-2 rounded-pill border border-line bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5"
+          className="focus-ring inline-flex min-h-11 min-w-36 items-center justify-center gap-2 rounded-pill border border-line bg-white px-5 py-3 text-sm font-semibold text-ink transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={state === "uploading"}
           onClick={() => inputRef.current?.click()}
           type="button"
         >
